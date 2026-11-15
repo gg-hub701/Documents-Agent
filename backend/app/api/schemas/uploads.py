@@ -57,12 +57,19 @@ class ImagePreflight(ContractModel):
     has_alpha: bool
 
 
+class CsvPreflight(ContractModel):
+    delimiter: str
+    quotechar: str
+    has_header: bool
+
+
 class UploadPreflight(ContractModel):
     page_count: int | None = Field(default=None, ge=0)
     row_count: int | None = Field(default=None, ge=0)
     slide_count: int | None = Field(default=None, ge=0)
     text_encoding: TextEncodingPreflight | None = None
     image: ImagePreflight | None = None
+    csv: CsvPreflight | None = None
     template_candidate: bool = False
     warnings: list[str] = Field(default_factory=list[str])
 
