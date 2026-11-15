@@ -42,6 +42,7 @@ class AppSettings:
     model_request_timeout_seconds: int
     max_model_calls_per_job: int
     max_tool_calls_per_job: int
+    upload_staging_ttl_hours: int
 
     @classmethod
     def from_env(
@@ -100,6 +101,11 @@ class AppSettings:
                 source,
                 "DOC_AGENT_MAX_TOOL_CALLS_PER_JOB",
                 30,
+            ),
+            upload_staging_ttl_hours=_positive_int(
+                source,
+                "UPLOAD_STAGING_TTL_HOURS",
+                24,
             ),
         )
         settings.ensure_directories()

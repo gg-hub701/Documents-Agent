@@ -6,9 +6,11 @@ from fastapi import FastAPI
 from app.api.errors import install_exception_handlers
 from app.api.routes.contracts import install_contract_components
 from app.api.routes.health import router as health_router
+from app.api.routes.uploads import router as uploads_router
 from app.api.schemas.common import OfficeHealth
 from app.infrastructure.db.engine import create_engine_for_path
 from app.infrastructure.db.migrations import check_database_migrations
+from app.infrastructure.db.session import create_session_factory
 from app.infrastructure.observability import configure_logging
 from app.infrastructure.office.status import detect_office_status
 from app.settings import AppSettings
@@ -55,8 +57,10 @@ def create_app(
     )
     application.state.settings = resolved_settings
     application.state.database_engine = engine
+    application.state.session_factory = create_session_factory(engine)
     install_exception_handlers(application)
     application.include_router(health_router)
+    application.include_router(uploads_router)
     install_contract_components(application)
     return application
 

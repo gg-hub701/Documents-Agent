@@ -179,6 +179,20 @@
         "title": "ArtifactSummary",
         "type": "object"
       },
+      "Body_create_upload_api_v1_uploads_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_create_upload_api_v1_uploads_post",
+        "type": "object"
+      },
       "ClarificationRequiredEvent": {
         "additionalProperties": false,
         "properties": {
@@ -432,6 +446,30 @@
         "title": "ConversionStartedEventData",
         "type": "object"
       },
+      "CsvPreflight": {
+        "additionalProperties": false,
+        "properties": {
+          "delimiter": {
+            "title": "Delimiter",
+            "type": "string"
+          },
+          "has_header": {
+            "title": "Has Header",
+            "type": "boolean"
+          },
+          "quotechar": {
+            "title": "Quotechar",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delimiter",
+          "quotechar",
+          "has_header"
+        ],
+        "title": "CsvPreflight",
+        "type": "object"
+      },
       "DependencyState": {
         "enum": [
           "ready",
@@ -478,7 +516,9 @@
           "ARTIFACT_NOT_AVAILABLE",
           "RESULT_GROUP_UNAVAILABLE",
           "EVENT_CURSOR_INVALID",
-          "IDEMPOTENCY_CONFLICT"
+          "IDEMPOTENCY_CONFLICT",
+          "UPLOAD_NOT_FOUND",
+          "UPLOAD_ALREADY_CONSUMED"
         ],
         "title": "ErrorCode",
         "type": "string"
@@ -664,6 +704,19 @@
         "title": "FileRoleSummary",
         "type": "object"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthStatus": {
         "additionalProperties": false,
         "properties": {
@@ -793,12 +846,12 @@
             "type": "boolean"
           },
           "logical_height": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Logical Height",
             "type": "integer"
           },
           "logical_width": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Logical Width",
             "type": "integer"
           },
@@ -807,12 +860,12 @@
             "type": "integer"
           },
           "source_height": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Source Height",
             "type": "integer"
           },
           "source_width": {
-            "exclusiveMinimum": 0,
+            "exclusiveMinimum": 0.0,
             "title": "Source Width",
             "type": "integer"
           }
@@ -2294,6 +2347,16 @@
       "UploadPreflight": {
         "additionalProperties": false,
         "properties": {
+          "csv": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CsvPreflight"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "image": {
             "anyOf": [
               {
@@ -2302,46 +2365,42 @@
               {
                 "type": "null"
               }
-            ],
-            "default": null
+            ]
           },
           "page_count": {
             "anyOf": [
               {
-                "minimum": 0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Page Count"
           },
           "row_count": {
             "anyOf": [
               {
-                "minimum": 0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Row Count"
           },
           "slide_count": {
             "anyOf": [
               {
-                "minimum": 0,
+                "minimum": 0.0,
                 "type": "integer"
               },
               {
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Slide Count"
           },
           "template_candidate": {
@@ -2357,8 +2416,7 @@
               {
                 "type": "null"
               }
-            ],
-            "default": null
+            ]
           },
           "warnings": {
             "items": {
@@ -2401,7 +2459,7 @@
             "type": "string"
           },
           "size_bytes": {
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Size Bytes",
             "type": "integer"
           },
@@ -2499,6 +2557,46 @@
         "title": "UploadedFileSummary",
         "type": "object"
       },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
       "ValidationFinishedEvent": {
         "additionalProperties": false,
         "properties": {
@@ -2594,6 +2692,124 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/uploads": {
+      "post": {
+        "operationId": "create_upload_api_v1_uploads_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_create_upload_api_v1_uploads_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Upload",
+        "tags": [
+          "uploads"
+        ]
+      }
+    },
+    "/api/v1/uploads/{upload_id}": {
+      "delete": {
+        "operationId": "delete_upload_api_v1_uploads__upload_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Upload Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Upload",
+        "tags": [
+          "uploads"
+        ]
+      },
+      "get": {
+        "operationId": "get_upload_api_v1_uploads__upload_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "upload_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Upload Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Upload",
+        "tags": [
+          "uploads"
+        ]
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",
