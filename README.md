@@ -5,7 +5,7 @@
 当前仓库处于 MVP 分阶段实现中：
 
 - 已完成 FastAPI、React/Vite、SQLite、Alembic 和 OpenAPI 基础。
-- 已完成本地配置、数据目录守卫、健康检查、结构化 JSON 日志和上传 API。
+- 已完成本地配置、数据目录守卫、健康检查、结构化 JSON 日志、上传 API 和任务 API。
 - Worker、Agent 规划、文档处理、格式转换、模板、生成和完整前端工作台仍在后续任务中实现。
 
 产品需求、技术设计和任务拆分分别以 [Requirements.md](Requirements.md)、[Design.md](Design.md) 和 [tasks.md](tasks.md) 为准。
@@ -107,6 +107,13 @@ pnpm --dir frontend dev
 - `POST /api/v1/uploads`
 - `GET /api/v1/uploads/{upload_id}`
 - `DELETE /api/v1/uploads/{upload_id}`
+
+任务接口：
+
+- `POST /api/v1/tasks`
+- `GET /api/v1/tasks`
+- `GET /api/v1/tasks/{task_id}`
+- `POST /api/v1/tasks/{task_id}/turns`
 
 当前支持的输入格式为 DOCX、XLSX、PPTX、PDF、CSV、MD、TXT、PNG、JPEG 和 WebP。单文件上限为 50 MB，MD/TXT 上限为 2 MB；宏文件和旧版 Office 格式会被拒绝。
 
