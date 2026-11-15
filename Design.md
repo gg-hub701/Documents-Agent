@@ -996,6 +996,8 @@ data: {"seq":1042,"type":"job.status","task_id":"...","turn_id":"...","job_id":"
 - `IDEMPOTENCY_CONFLICT`
 - `UPLOAD_NOT_FOUND`
 - `UPLOAD_ALREADY_CONSUMED`
+- `TASK_NOT_FOUND`
+- `CURSOR_INVALID`
 
 ## 10. 数据库设计
 
