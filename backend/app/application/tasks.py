@@ -13,9 +13,11 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.schemas.common import CursorPage
+from app.api.schemas.events import TaskQueuedEventData
 from app.api.schemas.tasks import (
     CreateTaskRequest,
     CreateTurnRequest,
+    EventPreview,
     MessageRole,
     TaskDetail,
     TaskStatus,
@@ -24,7 +26,9 @@ from app.api.schemas.tasks import (
     TurnSummary,
 )
 from app.api.schemas.uploads import SupportedFormat, UploadedFileSummary, UploadStatus
+from app.application.events import append_event
 from app.infrastructure.db.models.artifact import Artifact
+from app.infrastructure.db.models.event import ExecutionEvent
 from app.infrastructure.db.models.idempotency import IdempotencyKey
 from app.infrastructure.db.models.task import Message, Task, TaskTurn
 from app.infrastructure.db.models.upload import Upload, UploadedFile
@@ -139,6 +143,17 @@ class TaskService:
             self._session.flush()
             self._session.add(turn)
             self._session.flush()
+            append_event(
+                self._session,
+                task_id=str(task_id),
+                turn_id=str(turn_id),
+                job_id=None,
+                event_type="task.queued",
+                severity="info",
+                message="任务已进入队列",
+                data=TaskQueuedEventData(queue_position=0),
+                created_at=now,
+            )
             self._session.add_all([message, *uploaded_files])
             if idempotency_key is not None:
                 self._session.add(
@@ -250,6 +265,17 @@ class TaskService:
         try:
             self._session.add(turn)
             self._session.flush()
+            append_event(
+                self._session,
+                task_id=str(task_id),
+                turn_id=str(turn_id),
+                job_id=None,
+                event_type="task.queued",
+                severity="info",
+                message="新一轮已进入队列",
+                data=TaskQueuedEventData(queue_position=0),
+                created_at=now,
+            )
             self._session.add(message)
             if idempotency_key is not None:
                 self._session.add(
@@ -280,6 +306,12 @@ class TaskService:
             select(UploadedFile)
             .where(UploadedFile.task_id == str(task_id))
             .order_by(UploadedFile.created_at.asc())
+        ).all()
+        recent_events = self._session.scalars(
+            select(ExecutionEvent)
+            .where(ExecutionEvent.task_id == str(task_id))
+            .order_by(ExecutionEvent.id.desc())
+            .limit(20)
         ).all()
         return TaskDetail(
             task_id=UUID(task.id),
@@ -312,6 +344,16 @@ class TaskService:
                     sha256=uploaded.sha256,
                 )
                 for uploaded in uploaded_files
+            ],
+            recent_events=[
+                EventPreview(
+                    event_id=event.id,
+                    type=event.type,
+                    message=event.message,
+                    severity=event.severity,
+                    created_at=as_utc(event.created_at) or datetime.now(UTC),
+                )
+                for event in reversed(recent_events)
             ],
             created_at=as_utc(task.created_at) or datetime.now(UTC),
             updated_at=as_utc(task.updated_at) or datetime.now(UTC),

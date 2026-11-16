@@ -69,6 +69,7 @@ docs/                    设计规格与实施记录
 | `DOC_AGENT_TASK_TIMEOUT_SECONDS` | `900` | 单任务硬超时 |
 | `OFFICE_RENDER_TIMEOUT_SECONDS` | `120` | Office 渲染超时 |
 | `UPLOAD_STAGING_TTL_HOURS` | `24` | 未消费上传的暂存有效期 |
+| `SSE_HEARTBEAT_SECONDS` | `15` | SSE 连接心跳间隔 |
 
 模型地址、模型名称和 API Key 在接入真实模型适配器时通过本机环境或受限配置提供。任何密钥都不得写入源码、数据库、事件、前端响应或普通日志。
 
@@ -116,6 +117,9 @@ pnpm --dir frontend dev
 - `GET /api/v1/tasks`
 - `GET /api/v1/tasks/{task_id}`
 - `POST /api/v1/tasks/{task_id}/turns`
+- `GET /api/v1/tasks/{task_id}/events`
+
+任务事件流使用 SSE，支持 `after_event_id` 或 `Last-Event-ID` 续传。事件先持久化到 `execution_events`，再进行回放和实时广播；心跳不会写入数据库。
 
 当前支持的输入格式为 DOCX、XLSX、PPTX、PDF、CSV、MD、TXT、PNG、JPEG 和 WebP。单文件上限为 50 MB，MD/TXT 上限为 2 MB；宏文件和旧版 Office 格式会被拒绝。
 
