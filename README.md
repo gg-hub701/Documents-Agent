@@ -10,6 +10,8 @@
 
 产品需求、技术设计和任务拆分分别以 [Requirements.md](Requirements.md)、[Design.md](Design.md) 和 [tasks.md](tasks.md) 为准。
 
+任务执行状态统一维护在 [docs/task-tracking.md](docs/task-tracking.md)。该跟踪表以 [tasks.md](tasks.md) 为任务基线，按前置依赖展示待评审、进行中、待开始和阻塞任务；状态变化同步更新跟踪表，交付物与验收口径仍以 `tasks.md` 为准。
+
 ## 技术栈
 
 - Python 3.11
