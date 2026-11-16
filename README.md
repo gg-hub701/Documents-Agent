@@ -205,6 +205,7 @@ docs/project-readme
 - 分支名不包含角色编号或个人姓名。
 - 从最新 `master` 创建分支。
 - 每个任务保持独立、可测试的提交，提交信息使用 `type: summary`。
+- 每次任务状态变化、任务完成或 PR 合并后，必须同步更新 `docs/task-tracking.md` 的状态、统计和直接后继可用性。
 - 推送分支后创建面向 `master` 的 Pull Request。
 - PR 通过评审和检查后再合并，合并后同步 `master`，再从最新 `master` 创建下一分支。
 
