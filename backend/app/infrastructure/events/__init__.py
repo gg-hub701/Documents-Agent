@@ -1,0 +1,1 @@
+"""Persistent event transport infrastructure."""

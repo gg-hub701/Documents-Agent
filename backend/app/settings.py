@@ -43,6 +43,7 @@ class AppSettings:
     max_model_calls_per_job: int
     max_tool_calls_per_job: int
     upload_staging_ttl_hours: int
+    sse_heartbeat_seconds: int
 
     @classmethod
     def from_env(
@@ -106,6 +107,11 @@ class AppSettings:
                 source,
                 "UPLOAD_STAGING_TTL_HOURS",
                 24,
+            ),
+            sse_heartbeat_seconds=_positive_int(
+                source,
+                "SSE_HEARTBEAT_SECONDS",
+                15,
             ),
         )
         settings.ensure_directories()
