@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      DOC_AGENT_DATA_DIR: ${{ runner.temp }}/doc-agent-data
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install Python dependencies
+        run: uv sync --locked
+      - name: Lint
+        run: uv run ruff check .
+      - name: Type check
+        run: uv run pyright backend app scripts
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+      - name: Test
+        run: uv run pytest backend/tests
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+      - name: Lint
+        run: pnpm --dir frontend lint
+      - name: Type check
+        run: pnpm --dir frontend typecheck
+      - name: Test
+        run: pnpm --dir frontend test
+      - name: Build
+        run: pnpm --dir frontend build
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Install Python dependencies
+        run: uv sync --locked
+      - name: Install frontend dependencies
+        run: pnpm --dir frontend install --frozen-lockfile
+      - name: Check generated contracts
+        run: uv run python -m scripts.contracts.generate_frontend_contracts --check

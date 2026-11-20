@@ -142,14 +142,10 @@ data/
 合并前至少运行：
 
 ```powershell
-uv run ruff check .
-uv run pyright backend app
-uv run pytest backend/tests
-uv run alembic check
-pnpm --dir frontend typecheck
-pnpm --dir frontend build
-uv run python -m scripts.contracts.generate_frontend_contracts --check
+.\scripts\quality.ps1
 ```
+
+CI 在每次推送和 Pull Request 上并行执行 Python、前端和契约检查。`master` 分支保护应将 `CI / backend`、`CI / frontend` 和 `CI / contracts` 设置为必需状态检查。
 
 接口契约以 FastAPI/Pydantic 为唯一来源。修改 DTO、错误码、事件或路由后，必须执行：
 
