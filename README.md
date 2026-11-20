@@ -148,11 +148,16 @@ uv run pytest backend/tests
 uv run alembic check
 pnpm --dir frontend typecheck
 pnpm --dir frontend build
-uv run python -m scripts.contracts.export_openapi
-git diff --exit-code -- backend/openapi.json
+uv run python -m scripts.contracts.generate_frontend_contracts --check
 ```
 
-接口契约以 FastAPI/Pydantic 为唯一来源。修改 DTO、错误码、事件或路由后，必须重新导出 `backend/openapi.json`。
+接口契约以 FastAPI/Pydantic 为唯一来源。修改 DTO、错误码、事件或路由后，必须执行：
+
+```powershell
+uv run python -m scripts.contracts.generate_frontend_contracts
+```
+
+该命令重新导出 `backend/openapi.json`，生成 `frontend/src/lib/api/schema.d.ts` 和 SSE 判别联合 `frontend/src/lib/api/events.generated.ts`。提交前用 `--check` 验证生成文件没有漂移。
 
 ## 开发规范
 
