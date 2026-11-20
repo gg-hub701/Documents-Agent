@@ -73,6 +73,8 @@ docs/                    设计规格与实施记录
 
 模型地址、模型名称和 API Key 在接入真实模型适配器时通过本机环境或受限配置提供。任何密钥都不得写入源码、数据库、事件、前端响应或普通日志。
 
+本地测试使用 `FakeModelGateway`，可在无网络条件下执行意图理解、DAG 规划和视觉观察。`FaultInjectingModelGateway` 可注入超时、429 和 Schema 错误；`FixedClock` 与集成测试 Worker 驱动保证调用顺序和时间戳可重复。
+
 ## 安装与初始化
 
 在仓库根目录执行：
