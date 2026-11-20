@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from hashlib import sha256
 from typing import Literal
 
 import pytest
@@ -60,21 +61,16 @@ async def test_fake_gateway_and_worker_driver_run_without_network() -> None:
     )
     driver = DeterministicWorkerDriver(gateway, clock)
 
-    intent = await driver.run(
-        ModelOperation.UNDERSTAND,
-        lambda: gateway.understand({"instruction": "读取 CSV"}, ReadIntent),
+    intent = await driver.understand({"instruction": "读取 CSV"}, ReadIntent)
+    plan = await driver.plan_dag(
+        {"kind": "read"},
+        ["table.read"],
+        ReadPlan,
     )
-    plan = await driver.run(
-        ModelOperation.PLAN_DAG,
-        lambda: gateway.plan_dag(
-            {"kind": "read"},
-            ["table.read"],
-            ReadPlan,
-        ),
-    )
-    observation = await driver.run(
-        ModelOperation.VISION,
-        lambda: gateway.vision([b"image-bytes"], "读取表格", VisionObservation),
+    observation = await driver.vision(
+        [b"image-bytes"],
+        "读取表格",
+        VisionObservation,
     )
 
     assert intent == ReadIntent(kind="read", target_format="csv")
@@ -87,11 +83,25 @@ async def test_fake_gateway_and_worker_driver_run_without_network() -> None:
     ]
     assert [call.started_at.second for call in driver.calls] == [0, 1, 2]
     assert [call.finished_at.second for call in driver.calls] == [1, 2, 3]
-    assert gateway.calls == [
+    assert [call.status for call in driver.calls] == [
+        "succeeded",
+        "succeeded",
+        "succeeded",
+    ]
+    assert [call.operation for call in gateway.calls] == [
         ModelOperation.UNDERSTAND,
         ModelOperation.PLAN_DAG,
         ModelOperation.VISION,
     ]
+    assert [call.output_schema for call in gateway.calls] == [
+        "ReadIntent",
+        "ReadPlan",
+        "VisionObservation",
+    ]
+    assert gateway.calls[0].context_keys == ("instruction",)
+    assert gateway.calls[1].capabilities == ("table.read",)
+    assert gateway.calls[2].image_hashes == (sha256(b"image-bytes").hexdigest(),)
+    assert all(len(call.input_sha256) == 64 for call in gateway.calls)
 
 
 @pytest.mark.asyncio
@@ -109,6 +119,25 @@ async def test_fake_gateway_rejects_schema_mismatch() -> None:
         await gateway.understand({"instruction": "读取"}, ReadIntent)
 
     assert exc_info.value.code is ModelErrorCode.MODEL_SCHEMA_INVALID
+
+
+@pytest.mark.asyncio
+async def test_fake_gateway_uses_queued_responses_for_repeated_operations() -> None:
+    gateway = FakeModelGateway(
+        responses={
+            ModelOperation.UNDERSTAND: [
+                {"kind": "read", "target_format": "csv"},
+                {"kind": "read", "target_format": "csv"},
+            ]
+        }
+    )
+
+    first = await gateway.understand({"instruction": "第一次"}, ReadIntent)
+    second = await gateway.understand({"instruction": "第二次"}, ReadIntent)
+
+    assert first == second
+    assert len(gateway.calls) == 2
+    assert gateway.calls[0].input_sha256 != gateway.calls[1].input_sha256
 
 
 @pytest.mark.asyncio
@@ -143,6 +172,38 @@ async def test_fault_injection_raises_stable_error_codes(
     assert delegate.calls == []
     if code is ModelErrorCode.MODEL_RATE_LIMITED:
         assert exc_info.value.http_status == 429
+
+
+@pytest.mark.asyncio
+async def test_worker_driver_records_failed_gateway_call() -> None:
+    delegate = FakeModelGateway(
+        responses={
+            ModelOperation.UNDERSTAND: {
+                "kind": "read",
+                "target_format": "csv",
+            }
+        }
+    )
+    gateway = FaultInjectingModelGateway(
+        delegate,
+        [
+            ModelFault(
+                operation=ModelOperation.UNDERSTAND,
+                code=ModelErrorCode.MODEL_RATE_LIMITED,
+            )
+        ],
+    )
+    driver = DeterministicWorkerDriver(
+        gateway,
+        FixedClock(now=datetime(2026, 11, 20, tzinfo=UTC)),
+    )
+
+    with pytest.raises(ModelGatewayError):
+        await driver.understand({"instruction": "读取"}, ReadIntent)
+
+    assert len(driver.calls) == 1
+    assert driver.calls[0].status == "failed"
+    assert driver.calls[0].error_code == "MODEL_RATE_LIMITED"
 
 
 @pytest.mark.asyncio
