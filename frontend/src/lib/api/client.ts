@@ -35,10 +35,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 /** 首轮必须先在后端创建任务，拿回真实的 task_id，不能把前端 sessionId 当 task_id 用 */
-export function createTask(body: CreateTaskRequest): Promise<TaskDetail> {
+export function createTask(
+  body: CreateTaskRequest,
+  idempotencyKey: string,
+): Promise<TaskDetail> {
   return request<TaskDetail>(ROUTES.tasks, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
+    },
     body: JSON.stringify(body),
   });
 }
@@ -95,8 +101,7 @@ export function subscribeEvents(
   };
   EXECUTION_EVENT_TYPES.forEach((name) => source.addEventListener(name, handler));
   source.onerror = () => {
-    onError('SSE 连接中断，可用 lastEventId 续传');
-    source.close();
+    onError('SSE 连接中断，将自动尝试续传');
   };
   return { close: () => source.close() };
 }
