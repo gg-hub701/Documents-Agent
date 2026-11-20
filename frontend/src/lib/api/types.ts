@@ -5,8 +5,7 @@
  * 契约变更后重新导出 backend/openapi.json 并重新生成这两个文件即可。
  *
  * 注意两个游标不是一回事：
- * - `seq`：轮次内事件序号，用于 UI 去重（EventCursor）
- * - `event_id`：execution_events 持久化主键，用于 SSE 断线续传的 after_event_id 参数
+ * - `seq`：execution_events 持久化主键，既用于 UI 去重，也用于 SSE 断线续传
  *
  * SSE 事件是「瘦事件 + ID 引用」，data 里不含完整对象；
  * 前端必须按 ID 回查 REST 详情，不得把 data 当作完整领域对象渲染。
