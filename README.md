@@ -73,6 +73,8 @@ docs/                    设计规格与实施记录
 
 模型地址、模型名称和 API Key 在接入真实模型适配器时通过本机环境或受限配置提供。任何密钥都不得写入源码、数据库、事件、前端响应或普通日志。
 
+本地测试使用 `FakeModelGateway`，可在无网络条件下执行意图理解、DAG 规划和视觉观察。`FaultInjectingModelGateway` 可注入超时、429 和 Schema 错误；`FixedClock` 与集成测试 Worker 驱动保证调用顺序和时间戳可重复。
+
 ## 安装与初始化
 
 在仓库根目录执行：
@@ -142,17 +144,18 @@ data/
 合并前至少运行：
 
 ```powershell
-uv run ruff check .
-uv run pyright backend app
-uv run pytest backend/tests
-uv run alembic check
-pnpm --dir frontend typecheck
-pnpm --dir frontend build
-uv run python -m scripts.contracts.export_openapi
-git diff --exit-code -- backend/openapi.json
+.\scripts\quality.ps1
 ```
 
-接口契约以 FastAPI/Pydantic 为唯一来源。修改 DTO、错误码、事件或路由后，必须重新导出 `backend/openapi.json`。
+CI 在每次推送和 Pull Request 上并行执行 Python、前端和契约检查。`master` 分支保护应将 `CI / backend`、`CI / frontend` 和 `CI / contracts` 设置为必需状态检查。
+
+接口契约以 FastAPI/Pydantic 为唯一来源。修改 DTO、错误码、事件或路由后，必须执行：
+
+```powershell
+uv run python -m scripts.contracts.generate_frontend_contracts
+```
+
+该命令重新导出 `backend/openapi.json`，生成 `frontend/src/lib/api/schema.d.ts` 和 SSE 判别联合 `frontend/src/lib/api/events.generated.ts`。提交前用 `--check` 验证生成文件没有漂移。
 
 ## 开发规范
 
