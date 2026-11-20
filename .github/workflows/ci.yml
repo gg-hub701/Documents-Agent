@@ -11,7 +11,7 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     env:
-      DOC_AGENT_DATA_DIR: ${{ runner.temp }}/doc-agent-data
+      DOC_AGENT_DATA_DIR: .ci-data
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
