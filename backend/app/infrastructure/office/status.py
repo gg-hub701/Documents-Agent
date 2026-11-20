@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import shutil
 import sys
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol, cast
 
 OfficeStatusValue = Literal[
     "available",
@@ -19,9 +21,16 @@ class OfficeDependencyStatus:
     detail: str | None
 
 
+class _WinRegModule(Protocol):
+    HKEY_CURRENT_USER: int
+    HKEY_LOCAL_MACHINE: int
+
+    def OpenKey(self, key: int, sub_key: str) -> AbstractContextManager[object]: ...
+
+
 def _word_is_registered() -> bool:
     try:
-        import winreg
+        winreg = cast(_WinRegModule, importlib.import_module("winreg"))
     except ImportError:
         return False
 
