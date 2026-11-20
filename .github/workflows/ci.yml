@@ -10,8 +10,6 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    env:
-      DOC_AGENT_DATA_DIR: .ci-data
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
@@ -24,6 +22,8 @@ jobs:
       - name: Type check
         run: uv run pyright backend app scripts
       - name: Apply migrations
+        env:
+          DOC_AGENT_DATA_DIR: .ci-data
         run: uv run alembic upgrade head
       - name: Test
         run: uv run pytest backend/tests
